@@ -1,0 +1,18 @@
+services:
+  minibank-db:
+    image: postgres:latest  
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: gobank 
+      POSTGRES_DB: minibank
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql 
+    ports:
+      - "5432:5432"  
+
+  minibank-server:
+    build: . 
+    ports:
+      - "3000:3000"  
+    depends_on:
+      - minibank-db  
