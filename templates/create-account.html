@@ -1,81 +1,73 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Create Account</title>
-  <style>
-    body {
-      font-family: sans-serif;
-    }
-    label {
-      display: block;
-      margin-bottom: 5px;
-    }
-    input[type="text"],
-    input[type="email"],
-    input[type="tel"],
-    input[type="password"],
-    input[type="number"] {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-    button[type="submit"] {
-      background-color: #4CAF50;
-      color: white;
-      padding: 12px 20px;
-      border: none;
-      cursor: pointer;
-    }
-    /* Add styles for the navbar */
-    .navbar {
-      background-color: #333;
-      overflow: hidden;
-    }
-    .navbar a {
-      float: left;
-      display: block;
-      color: white;
-      text-align: center;
-      padding: 14px 16px;
-      text-decoration: none;
-    }
-    .navbar a:hover {
-      background-color: #ddd;
-      color: black;
-    }
-  </style>
-</head>
-<body>
+  <head>
+    <title>Create Account</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+    </style>
+  </head>
+  <body>
 
-  <div class="navbar">
-    <a href="/">Home</a>
-    <a href="/create-account">Create Account</a>
+  <div class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a href="/" class="navbar-brand px-3">Home</a>
+    <span class="navbar-text px-3"> | </span> 
+    {{if .IsLoggedIn}}
+    <a href="/payment" class="navbar-brand px-3">Pay</a>
+    <span class="navbar-text px-3"> | </span> 
+    <a href="/all-accounts" class="navbar-brand px-3">All Accounts</a>
+    <span class="navbar-text px-3"> | </span> 
+    <a href="/delete-account" class="navbar-brand px-3">Delete Account</a>
+    <span class="navbar-text px-3"> | </span> 
+    {{end}}
+    <div id="auth-links" class="ml-auto">
+    </div>
   </div>
 
-  <h1>Create a New Account</h1>
-  <form method="POST" action="/create-account">
-    <label for="first_name">First Name:</label>
-    <input type="text" id="first_name" name="first_name" required><br><br>
+  <script>
+    const authLinks = document.getElementById('auth-links');
+    let isLoggedIn = {{ .IsLoggedIn }};
 
-    <label for="last_name">Last Name:</label>
-    <input type="text" id="last_name" name="last_name" required><br><br>
+    if (isLoggedIn) {
+      authLinks.innerHTML = '<a href="/logout" class="navbar-brand">Logout</a>';
+    } else {
+      authLinks.innerHTML = '<a href="/login" class="navbar-brand">Login</a>';
+    }
+  </script>
 
-    <label for="email">Email:</label>
-    <input type="email" id="email" name="email" required><br><br>
+    <div class="container mt-4">
+      <h1>Create a New Account</h1>
+      <form method="POST" action="/create-account">
+        <div class="form-group">
+          <label for="first_name">First Name:</label>
+          <input type="text" class="form-control" id="first_name" name="first_name" required>
+        </div>
 
-    <label for="phone_number">Phone Number:</label>
-    <input type="tel" id="phone_number" name="phone_number" required><br><br>
+        <div class="form-group">
+          <label for="last_name">Last Name:</label>
+          <input type="text" class="form-control" id="last_name" name="last_name" required>
+        </div>
 
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required><br><br>
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" class="form-control" id="email" name="email" required>
+        </div>
 
-    <label for="balance">Initial Balance:</label>
-    <input type="number" id="balance" name="balance" value="0"><br><br>
+        <div class="form-group">
+          <label for="phone_number">Phone Number:</label>
+          <input type="tel" class="form-control" id="phone_number" name="phone_number" required>
+        </div>
 
-    <button type="submit">Create Account</button>
-  </form>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" class="form-control" id="password" name="password" required>
+        </div>
 
-</body>
+        <button type="submit" class="btn btn-primary">Create Account</button>
+      </form>
+    </div>
+
+  </body>
 </html>

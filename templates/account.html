@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Account Details</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a href="/" class="navbar-brand px-3">Home</a>
+    <span class="navbar-text px-3"> | </span> 
+    {{if .IsLoggedIn}}
+    <a href="/payment" class="navbar-brand px-3">Pay</a>
+    <span class="navbar-text px-3"> | </span> 
+    <a href="/all-accounts" class="navbar-brand px-3">All Accounts</a>
+    <span class="navbar-text px-3"> | </span> 
+    <a href="/delete-account" class="navbar-brand px-3">Delete Account</a>
+    <span class="navbar-text px-3"> | </span> 
+    {{end}}
+    <div id="auth-links" class="ml-auto">
+    </div>
+  </div>
+
+  <script>
+    const authLinks = document.getElementById('auth-links');
+    let isLoggedIn = {{ .IsLoggedIn }};
+    if (isLoggedIn) {
+      authLinks.innerHTML = '<a href="/logout" class="navbar-brand">Logout</a>';
+    } else {
+      authLinks.innerHTML = '<a href="/login" class="navbar-brand">Admin</a>';
+    }
+  </script>
+
+  <div class="container mt-4">
+    {{if .Account}}
+    <h1>Hi {{.Account.First_name}},</h1> 
+    <p>You currently have 
+    <h2>${{ .Account.Balance }}</h2>
+    in your account.</p> 
+    <p>Would you like to make a <a href="/payment">payment</a>?</p> 
+
+    <form method="POST" action="/account"> 
+      <input type="hidden" name="stimulus" value="true">
+      <button type="submit" class="btn btn-success">Stimulus</button> 
+    </form>
+    {{else}}
+    <p>Account not found.</p> 
+    {{end}}
+</body>
+</html>

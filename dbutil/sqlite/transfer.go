@@ -58,7 +58,7 @@ func (s *sqlite) Transfer(fromAccountId, toAccountId int, amount float64) error 
 }
 
 func (s *sqlite) UpdateAccountBalance(tx *sql.Tx, account *dbutil.Account) error {
-	stmt, err := tx.Prepare("UPDATE accounts SET balance = ?, updated_at = ? WHERE id = ?")
+	stmt, err := tx.Prepare("UPDATE account SET balance = ?, updated_at = ? WHERE id = ?")
 	if err != nil {
 		return fmt.Errorf("error preparing update statement: %w", err)
 	}
@@ -70,4 +70,11 @@ func (s *sqlite) UpdateAccountBalance(tx *sql.Tx, account *dbutil.Account) error
 	}
 
 	return nil
+}
+
+func (s *sqlite) Stimulus(tx *sql.Tx, account *dbutil.Account) error {
+	// Update the account balance
+	account.Balance += 1000
+
+	return s.UpdateAccountBalance(tx, account)
 }

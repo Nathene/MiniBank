@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"minibank/dbutil"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -90,7 +91,7 @@ func (s *sqlite) GetAccounts() []dbutil.Account {
 			&account.Updated_at,
 		)
 		if err != nil {
-			log.Fatal(err)
+			return nil
 		}
 		if id.Valid {
 			account.Id = int(id.Int64)
@@ -125,7 +126,7 @@ func (s *sqlite) CreateAccount(account *dbutil.Account) error {
 
 func (s *sqlite) GetAccount(id int) (*dbutil.Account, error) {
 	// Prepare the SQL statement
-	stmt, err := s.db.Prepare("SELECT * FROM accounts WHERE id = ?")
+	stmt, err := s.db.Prepare("SELECT * FROM account WHERE id = ?")
 	if err != nil {
 		return nil, fmt.Errorf("error preparing statement: %w", err)
 	}
@@ -142,4 +143,76 @@ func (s *sqlite) GetAccount(id int) (*dbutil.Account, error) {
 	}
 
 	return &account, nil
+}
+
+func (s *sqlite) GetAccountByEmail(email string) (*dbutil.Account, error) {
+	// Prepare the SQL statement
+	stmt, err := s.db.Prepare("SELECT * FROM account WHERE email = ?") // Use the correct table name "account"
+	if err != nil {
+		return nil, fmt.Errorf("error preparing statement: %w", err)
+	}
+	defer stmt.Close()
+
+	var account dbutil.Account
+	err = stmt.QueryRow(email).Scan(&account.Id, &account.First_name, &account.Last_name, &account.Email, &account.Phone_number, &account.Encrypted_password, &account.Balance, &account.Created_at, &account.Updated_at)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("account not found: %w", err) // Or you can return nil, nil
+		}
+		return nil, fmt.Errorf("error scanning row: %w", err)
+	}
+
+	return &account, nil
+}
+
+func (s *sqlite) GetAccountByPhoneNumber(number int) (*dbutil.Account, error) {
+	// Prepare the SQL statement
+	stmt, err := s.db.Prepare("SELECT * FROM account WHERE phone_number = ?") // Use the correct table name "account"
+	if err != nil {
+		return nil, fmt.Errorf("error preparing statement: %w", err)
+	}
+	defer stmt.Close()
+
+	var account dbutil.Account
+	err = stmt.QueryRow(number).Scan(&account.Id, &account.First_name, &account.Last_name, &account.Email, &account.Phone_number, &account.Encrypted_password, &account.Balance, &account.Created_at, &account.Updated_at)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("account not found: %w", err) // Or you can return nil, nil
+		}
+		return nil, fmt.Errorf("error scanning row: %w", err)
+	}
+
+	return &account, nil
+}
+
+func (s *sqlite) DeleteAccount(id int) error {
+	stmt, err := s.db.Prepare("DELETE FROM account WHERE id = ?") // Use correct table name "account"
+	if err != nil {
+		return fmt.Errorf("error preparing delete statement: %w", err)
+	}
+	defer stmt.Close()
+
+	// Execute the statement with the account ID
+	result, err := stmt.Exec(id)
+	if err != nil {
+		return fmt.Errorf("error deleting account: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf(`no  
+ account found with ID %d`, id)
+	}
+
+	return nil
+}
+
+func (s *sqlite) Begin() (*sql.Tx, error) {
+	return s.db.Begin()
 }

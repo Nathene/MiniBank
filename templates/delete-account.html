@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Delete Account</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    /* Add styles for the navbar */
+    body {
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a href="/" class="navbar-brand px-3">Home</a>
+    <span class="navbar-text px-3"> | </span> 
+    {{if .IsLoggedIn}}
+    <a href="/payment" class="navbar-brand px-3">Pay</a>
+    <span class="navbar-text px-3"> | </span> 
+    <a href="/all-accounts" class="navbar-brand px-3">All Accounts</a>
+    <span class="navbar-text px-3"> | </span> 
+    <a href="/delete-account" class="navbar-brand px-3">Delete Account</a>
+    <span class="navbar-text px-3"> | </span> 
+    {{end}}
+    <div id="auth-links" class="ml-auto">
+    </div>
+  </div>
+
+  <script>
+    const authLinks = document.getElementById('auth-links');
+    let isLoggedIn = {{ .IsLoggedIn }};
+
+    if (isLoggedIn) {
+      authLinks.innerHTML = '<a href="/logout" class="navbar-brand">Logout</a>';
+    } else {
+      authLinks.innerHTML = '<a href="/login" class="navbar-brand">Login</a>';
+    }
+  </script>
+
+  <div class="container mt-4"> 
+    <h1>Accounts</h1>
+
+    <table class="table table-bordered"> 
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Email</th>
+          <th>Phone Number</th>
+          <th>Balance</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Accounts}}
+        <tr>
+          <td>{{.Id}}</td>
+          <td>{{.First_name}}</td>
+          <td>{{.Last_name}}</td>
+          <td>{{.Email}}</td>
+          <td>{{.Phone_number}}</td>
+          <td>{{.Balance}}</td>
+          <td>
+            <form method="POST" action="/delete-account">  
+              <input type="hidden" name="account_id" value="{{.Id}}"> 
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>
