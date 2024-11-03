@@ -9,15 +9,16 @@ import (
 )
 
 type Account struct {
-	Id                 int       `json:"id"`
-	First_name         string    `json:"first_name"`
-	Last_name          string    `json:"last_name"`
-	Email              string    `json:"email"`
-	Phone_number       int       `json:"phone_number,omitempty"`
-	Encrypted_password string    `json:"encrypted_password"`
-	Balance            float64   `json:"balance"`
-	Created_at         time.Time `json:"created_at"`
-	Updated_at         time.Time `json:"updated_at"`
+	Id                 int           `json:"id"`
+	First_name         string        `json:"first_name"`
+	Last_name          string        `json:"last_name"`
+	Email              string        `json:"email"`
+	Phone_number       int           `json:"phone_number,omitempty"`
+	Encrypted_password string        `json:"encrypted_password"`
+	Balance            float64       `json:"balance"`
+	Created_at         time.Time     `json:"created_at"`
+	Updated_at         time.Time     `json:"updated_at"`
+	Transactions       []Transaction `json:"transactions,omitempty"`
 }
 
 func (a *Account) ChangeName(first_name, last_name string) {

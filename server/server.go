@@ -53,12 +53,15 @@ func Run() {
 	}
 
 	templates := make(map[string]*template.Template)
-	templates["create-account.html"] = template.Must(template.ParseFiles("templates/create-account.html"))
-	templates["delete-account.html"] = template.Must(template.ParseFiles("templates/delete-account.html"))
-	templates["payment.html"] = template.Must(template.ParseFiles("templates/payment.html"))
-	templates["account.html"] = template.Must(template.ParseFiles("templates/account.html"))
-	templates["all-accounts.html"] = template.Must(template.ParseFiles("templates/all-accounts.html"))
-	templates["login.html"] = template.Must(template.ParseFiles("templates/login.html"))
+	templates["create-account"] = template.Must(template.ParseFiles("templates/create-account.html"))
+	templates["delete-account"] = template.Must(template.ParseFiles("templates/delete-account.html"))
+	templates["payment"] = template.Must(template.ParseFiles("templates/payment.html"))
+	templates["account"] = template.Must(template.ParseFiles("templates/account.html"))
+	templates["all-accounts"] = template.Must(template.ParseFiles("templates/all-accounts.html"))
+	templates["login"] = template.Must(template.ParseFiles("templates/login.html"))
+
+	templates["transactions"] = template.Must(template.ParseFiles("templates/transactions.html"))
+	templates["single-transaction"] = template.Must(template.ParseFiles("templates/single-transaction.html"))
 	// Add more templates if needed
 
 	e := echo.New()
@@ -96,6 +99,14 @@ func Run() {
 	})
 	e.POST("/delete-account", func(c echo.Context) error {
 		return deleteAccountHandler(&db, c)
+	})
+
+	e.GET("/transactions", func(c echo.Context) error {
+		return transactionsHandler(&db, c)
+	})
+
+	e.GET("/single-transaction/:transaction_id", func(c echo.Context) error {
+		return singleTransactionHandler(&db, c)
 	})
 
 	e.GET("/login", func(c echo.Context) error {

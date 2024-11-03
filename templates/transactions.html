@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        .table-responsive {
+            overflow-x: auto; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a href="/" class="navbar-brand">Home</a>
+        <span class="navbar-text px-4"> | </span> 
+        {{if .IsLoggedIn}}
+        <a href="/payment" class="navbar-brand">Pay</a>
+        <span class="navbar-text px-4"> | </span> 
+        <a href="/transactions" class="navbar-brand">Transactions</a> <span class="navbar-text px-4"> | </span>
+        <a href="/all-accounts" class="navbar-brand">All Accounts</a>
+        <span class="navbar-text px-4"> | </span> 
+        <a href="/delete-account" class="navbar-brand">Delete Account</a>
+        <span class="navbar-text px-4"> | </span> 
+        {{end}}
+        <div id="auth-links" class="ml-auto">
+        </div>
+    </div>
+
+    <script>
+        const authLinks = document.getElementById('auth-links');
+        let isLoggedIn = {{ .IsLoggedIn }};
+        if (isLoggedIn) {
+            authLinks.innerHTML = '<a href="/logout" class="navbar-brand">Logout</a>';
+        } else {
+            authLinks.innerHTML = '<a href="/login" class="navbar-brand">Admin</a>';
+        }
+    </script>
+
+    <div class="container mt-4">
+        <h1>Transactions for Account {{ .Account.First_name }} {{ .Account.Last_name }}</h1>
+
+        <div class="table-responsive"> 
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                        <th>Action</th> 
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Transactions }}
+                    <tr>
+                        <td>{{ .Id }}</td>
+                        <td>${{ .Amount }}</td>
+                        <td>{{ .TransactionType }}</td>
+                        <td>{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</td> 
+                        <td><a href="/single-transaction/{{ .Id }}" class="btn btn-primary btn-sm">View Details</a></td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+
+        <a href="/" class="btn btn-secondary">Back to Account</a>
+    </div>
+</body>
+</html>

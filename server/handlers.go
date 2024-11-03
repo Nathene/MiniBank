@@ -52,20 +52,20 @@ func accountHandler(db dbutil.Database, c echo.Context) error {
 	}
 
 	// Render the account.html template with the account data
-	return c.Render(http.StatusOK, "account.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "account", map[string]interface{}{
 		"Account": account,
 	})
 }
 
 func allAccountsHandler(db dbutil.Database, c echo.Context) error {
-	return c.Render(http.StatusOK, "all-accounts.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "all-accounts", map[string]interface{}{
 		"Accounts": db.GetAccounts(),
 	})
 }
 
 func createAccountHandler(db dbutil.Database, c echo.Context) error {
 	if c.Request().Method == http.MethodGet {
-		return c.Render(http.StatusOK, "create-account.html", nil)
+		return c.Render(http.StatusOK, "create-account", nil)
 	}
 
 	if c.Request().Method == http.MethodPost {
@@ -121,14 +121,14 @@ func loginHandler(db dbutil.Database, c echo.Context) error {
 		account, err := db.GetAccountByEmail(email)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				return c.Render(http.StatusUnauthorized, "login.html", "invalid login details")
+				return c.Render(http.StatusUnauthorized, "login", "invalid login details")
 			}
 			return c.String(http.StatusInternalServerError, "Error fetching account")
 		}
 
 		err = bcrypt.CompareHashAndPassword([]byte(account.Encrypted_password), []byte(password))
 		if err != nil {
-			return c.Render(http.StatusUnauthorized, "login.html", map[string]interface{}{
+			return c.Render(http.StatusUnauthorized, "login", map[string]interface{}{
 				"Error": "Invalid email or password", // Correct error message key
 			})
 		}
@@ -139,7 +139,7 @@ func loginHandler(db dbutil.Database, c echo.Context) error {
 
 		return c.Redirect(http.StatusSeeOther, "/")
 	}
-	return c.Render(http.StatusOK, "login.html", nil)
+	return c.Render(http.StatusOK, "login", nil)
 }
 
 func logoutHandler(c echo.Context) error {
@@ -161,7 +161,7 @@ func deleteAccountHandler(db dbutil.Database, c echo.Context) error {
 		accounts := db.GetAccounts()
 		accountIDStr := c.QueryParam("account_id")
 		if accountIDStr == "" {
-			return c.Render(http.StatusOK, "delete-account.html", map[string]interface{}{
+			return c.Render(http.StatusOK, "delete-account", map[string]interface{}{
 				"Accounts": accounts,
 			})
 		}
@@ -213,11 +213,9 @@ func deleteAccountHandler(db dbutil.Database, c echo.Context) error {
 func paymentHandler(db dbutil.Database, c echo.Context) error {
 	if c.Request().Method == http.MethodPost {
 		c.Response().Header().Set("Content-Type", "application/json")
-		// Get recipient and amount from form data
 		recipient := c.FormValue("recipient")
 		amountStr := c.FormValue("amount")
 
-		// Validate input (add more robust validation as needed)
 		if recipient == "" || amountStr == "" {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{"Error": "Please provide recipient and amount"})
 		}
@@ -226,18 +224,16 @@ func paymentHandler(db dbutil.Database, c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{"Error": "Invalid amount"})
 		}
 
-		// Get the logged-in user's ID
 		sess, _ := session.Get("session", c)
 		userID, ok := sess.Values["userID"]
 		if !ok {
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
-		// Identify the recipient account (using email or phone number)
 		var recipientAccount *dbutil.Account
-		if strings.Contains(recipient, "@") { // Check if it's an email
+		if strings.Contains(recipient, "@") {
 			recipientAccount, err = db.GetAccountByEmail(recipient)
-		} else { // Assume it's a phone number
+		} else {
 			phoneNumber, err := strconv.Atoi(recipient)
 			if err != nil {
 				return c.JSON(http.StatusBadRequest, map[string]interface{}{"Error": "Invalid recipient phone number"})
@@ -248,7 +244,6 @@ func paymentHandler(db dbutil.Database, c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"Error": "Error finding recipient account"})
 		}
 
-		// Process the payment (update balances, record transaction, etc.)
 		senderAccount, err := db.GetAccount(userID.(int))
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"Error": "Error fetching sender account details"})
@@ -258,24 +253,37 @@ func paymentHandler(db dbutil.Database, c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{"Error": "Insufficient balance"})
 		}
 
-		err = db.Transfer(userID.(int), recipientAccount.Id, amount)
+		transactionID, err := db.Transfer(userID.(int), recipientAccount.Id, amount)
 		if err != nil {
-			log.Println("Error processing payment:", err)
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"Error": fmt.Sprintf("Error processing payment: %v", err)})
+			log.Printf("Error during transfer: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"Error": "Error processing payment"})
 		}
 
-		return c.Redirect(http.StatusSeeOther, "/")
+		if transactionID == 0 {
+			log.Println("Transaction ID is invalid, possibly due to an error in db.Transfer.")
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"Error": "Error finalizing transaction"})
+		}
+
+		tx, err := db.Begin()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, "Error starting transaction")
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, "Error committing transaction")
+		}
+		// Redirect to the transaction details page
+		return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/single-transaction/%d", transactionID))
 	}
 
-	// For GET requests, fetch the account details and return as JSON
 	recipient := c.QueryParam("recipient")
 	if recipient == "" {
-		return c.Render(http.StatusOK, "payment.html", nil)
+		return c.Render(http.StatusOK, "payment", nil)
 	}
 
 	c.Response().Header().Set("Content-Type", "application/json")
 
-	// Identify the recipient account (using email or phone number)
 	var recipientAccount *dbutil.Account
 	var err error
 	if strings.Contains(recipient, "@") {
@@ -288,7 +296,6 @@ func paymentHandler(db dbutil.Database, c echo.Context) error {
 		recipientAccount, err = db.GetAccountByPhoneNumber(phoneNumber)
 	}
 
-	// Check if recipientAccount is nil before accessing its properties
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusNotFound, map[string]interface{}{"Error": "Account not found"})
@@ -301,4 +308,93 @@ func paymentHandler(db dbutil.Database, c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{"Account": recipientAccount})
+}
+
+func transactionsHandler(db dbutil.Database, c echo.Context) error {
+	// Step 1: Get the account ID from the URL parameters or session
+	accountIDStr := c.QueryParam("account_id")
+	if accountIDStr == "" {
+		sess, _ := session.Get("session", c)
+		userID, ok := sess.Values["userID"]
+		if !ok {
+			log.Println("User is not logged in. Redirecting to login.")
+			return c.Redirect(http.StatusSeeOther, "/login")
+		}
+		accountIDStr = strconv.Itoa(userID.(int))
+	}
+	// Step 2: Convert account ID to integer
+	accountID, err := strconv.Atoi(accountIDStr)
+	if err != nil {
+		log.Printf("Invalid account ID: %s. Error: %v", accountIDStr, err)
+		return c.String(http.StatusBadRequest, "Invalid account ID")
+	}
+	// Step 3: Fetch account details
+	account, err := db.GetAccount(accountID)
+	if err != nil {
+		log.Printf("Error fetching account details for ID %d: %v", accountID, err)
+		return c.String(http.StatusInternalServerError, "Error fetching account details")
+	}
+	// Step 4: Fetch transactions
+	transactions, err := db.ListTransactionsFromAccount(accountID)
+	if err != nil {
+		log.Printf("Error fetching transactions for account %d: %v", accountID, err)
+		return c.String(http.StatusInternalServerError, "Error fetching transactions")
+	}
+	// Step 5: Render the template
+	return c.Render(http.StatusOK, "transactions", map[string]interface{}{
+		"Transactions": transactions,
+		"Account":      account,
+		"IsLoggedIn":   true,
+	})
+}
+
+func singleTransactionHandler(db dbutil.Database, c echo.Context) error {
+	// Step 1: Get the transaction ID from the URL parameters
+	transactionIDStr := c.Param("transaction_id")
+	if transactionIDStr == "" {
+		log.Println("Transaction ID is required")
+		return c.String(http.StatusBadRequest, "Transaction ID is required")
+	}
+
+	// Step 2: Convert transaction ID to integer
+	transactionID, err := strconv.Atoi(transactionIDStr)
+	if err != nil {
+		log.Printf("Invalid transaction ID: %s. Error: %v", transactionIDStr, err)
+		return c.String(http.StatusBadRequest, "Invalid transaction ID")
+	}
+
+	// Step 3: Fetch the transaction details from the database
+	transaction, err := db.GetTransaction(transactionID)
+	if err != nil {
+		log.Printf("Error fetching transaction details for ID %d: %v", transactionID, err)
+		return c.String(http.StatusNotFound, "Transaction not found")
+	}
+
+	// Step 4: Fetch associated account details using FromAccount and ToAccount
+	fromAccount, err := db.GetAccount(transaction.FromAccount)
+	if err != nil {
+		log.Printf("Error fetching from account details for ID %d: %v", transaction.FromAccount, err)
+		return c.String(http.StatusInternalServerError, "Error fetching from account details")
+	}
+
+	toAccount, err := db.GetAccount(transaction.ToAccount)
+	if err != nil {
+		log.Printf("Error fetching to account details for ID %d: %v", transaction.ToAccount, err)
+		return c.String(http.StatusInternalServerError, "Error fetching to account details")
+	}
+
+	// Step 5: Render the template
+	err = c.Render(http.StatusOK, "single-transaction", map[string]interface{}{
+		"Transaction": transaction,
+		"FromAccount": fromAccount,
+		"ToAccount":   toAccount,
+		"IsLoggedIn":  true,
+	})
+
+	if err != nil {
+		log.Printf("Error rendering single-transaction template: %v", err)
+		return c.String(http.StatusInternalServerError, "Error rendering template")
+	}
+
+	return nil
 }
