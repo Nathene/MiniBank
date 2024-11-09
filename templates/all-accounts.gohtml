@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>My Accounts</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <style>
@@ -11,36 +12,36 @@
 </head>
 <body>
 
+  <!-- Navigation Bar -->
   <div class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a href="/" class="navbar-brand">Home</a>
     <span class="navbar-text px-4"> | </span> 
+
     {{if .IsLoggedIn}}
-    <a href="/payment" class="navbar-brand">Pay</a>
-    <span class="navbar-text px-4"> | </span> 
-    <a href="/transactions" class="navbar-brand">Transactions</a> <span class="navbar-text px-4"> | </span>
-    <a href="/all-accounts" class="navbar-brand">All Accounts</a>
-    <span class="navbar-text px-4"> | </span> 
-    <a href="/delete-account" class="navbar-brand">Delete Account</a>
-    <span class="navbar-text px-4"> | </span> 
+      <a href="/payment" class="navbar-brand">Pay</a>
+      <span class="navbar-text px-4"> | </span> 
+      <a href="/transactions" class="navbar-brand">Transactions</a>
+      <span class="navbar-text px-4"> | </span>
+      <a href="/all-accounts" class="navbar-brand">All Accounts</a>
+      <span class="navbar-text px-4"> | </span> 
+      <a href="/delete-account" class="navbar-brand">Delete Account</a>
+      <span class="navbar-text px-4"> | </span> 
     {{end}}
+
     <div id="auth-links" class="ml-auto">
+      {{if .IsLoggedIn}}
+        <a href="/logout" class="navbar-brand">Logout</a>
+      {{else}}
+        <a href="/login" class="navbar-brand">Login</a>
+      {{end}}
     </div>
   </div>
 
-  <script>
-    const authLinks = document.getElementById('auth-links');
-    let isLoggedIn = {{ .IsLoggedIn }};
-
-    if (isLoggedIn) {
-      authLinks.innerHTML = '<a href="/logout" class="navbar-brand">Logout</a>';
-    } else {
-      authLinks.innerHTML = '<a href="/login" class="navbar-brand">Login</a>';
-    }
-  </script>
-
+  <!-- Main Content -->
   <div class="container mt-4">
     <h1>My Accounts</h1>
 
+    <!-- Accounts Table -->
     <table class="table table-bordered">
       <thead>
         <tr>
@@ -59,8 +60,14 @@
           <td>{{.First_name}}</td>
           <td>{{.Last_name}}</td>
           <td>{{.Email}}</td>
-          <td>(+61) {{.Phone_number}}</td>
-          <td>${{.Balance}}</td>
+          <td>
+            {{if .Phone_number}}
+              (+61) {{.Phone_number}}
+            {{else}}
+              N/A
+            {{end}}
+          </td>
+          <td>${{printf "%.2f" .Balance}}</td>
         </tr>
         {{end}}
       </tbody>

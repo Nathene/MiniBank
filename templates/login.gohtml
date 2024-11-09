@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Login</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <style>
@@ -11,35 +12,36 @@
 </head>
 <body>
 
+  <!-- Navigation Bar -->
   <div class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a href="/" class="navbar-brand">Home</a>
     <span class="navbar-text px-4"> | </span> 
+
     {{if .IsLoggedIn}}
-    <a href="/payment" class="navbar-brand">Pay</a>
-    <span class="navbar-text px-4"> | </span> 
-    <a href="/transactions" class="navbar-brand">Transactions</a> <span class="navbar-text px-4"> | </span>
-    <a href="/all-accounts" class="navbar-brand">All Accounts</a>
-    <span class="navbar-text px-4"> | </span> 
-    <a href="/delete-account" class="navbar-brand">Delete Account</a>
-    <span class="navbar-text px-4"> | </span> 
+      <a href="/payment" class="navbar-brand">Pay</a>
+      <span class="navbar-text px-4"> | </span> 
+      <a href="/transactions" class="navbar-brand">Transactions</a>
+      <span class="navbar-text px-4"> | </span>
+      <a href="/all-accounts" class="navbar-brand">All Accounts</a>
+      <span class="navbar-text px-4"> | </span> 
+      <a href="/delete-account" class="navbar-brand">Delete Account</a>
+      <span class="navbar-text px-4"> | </span> 
     {{end}}
+
     <div id="auth-links" class="ml-auto">
+      {{if .IsLoggedIn}}
+        <a href="/logout" class="navbar-brand">Logout</a>
+      {{else}}
+        <a href="/login" class="navbar-brand">Login</a>
+      {{end}}
     </div>
   </div>
 
-  <script>
-    const authLinks = document.getElementById('auth-links');
-    let isLoggedIn = {{ .IsLoggedIn }};
-
-    if (isLoggedIn) {
-      authLinks.innerHTML = '<a href="/logout" class="navbar-brand">Logout</a>';
-    } else {
-      authLinks.innerHTML = '<a href="/login" class="navbar-brand">Login</a>';
-    }
-  </script>
-
+  <!-- Main Content -->
   <div class="container mt-4">
     <h1>Login</h1>
+
+    <!-- Login Form -->
     <form method="POST" action="/login">
       <div class="form-group">
         <label for="email">Email:</label>
@@ -52,14 +54,15 @@
       </div>
 
       <button type="submit" class="btn btn-primary">Login</button>
-      {{if .Error}} 
-      <div class="alert alert-danger" role="alert"> 
-      {{.Error}}
-      </div>
+
+      {{if .Error}}
+        <div class="alert alert-danger mt-3" role="alert">
+          {{.Error}}
+        </div>
       {{end}}
     </form>
 
-    <p class="mt-3">Don't have an account? <a href="/create-account">Sign up</a></p> 
+    <p class="mt-3">Don't have an account? <a href="/create-account">Sign up</a></p>
   </div>
 
 </body>
