@@ -69,7 +69,6 @@ func createAccountHandler(db dbutil.Database, c echo.Context) error {
 	}
 
 	if c.Request().Method == http.MethodPost {
-		// Collect form values
 		firstName := c.FormValue("first_name")
 		lastName := c.FormValue("last_name")
 		email := c.FormValue("email")
@@ -78,22 +77,20 @@ func createAccountHandler(db dbutil.Database, c echo.Context) error {
 
 		// Validate required fields
 		if firstName == "" || lastName == "" || email == "" || password == "" {
-			return c.String(http.StatusBadRequest, "Please fill in all required fields")
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Please fill in all required fields."})
 		}
 
-		// Format the first name
-		firstName = strings.Replace(firstName, string(firstName[0]), strings.ToUpper(string(firstName[0])), 1)
-
-		// Hash the password
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
-		if err != nil {
-			return c.String(http.StatusInternalServerError, "Error hashing password")
-		}
-
-		// Convert phone number to integer
+		// Validate phone number
 		number, err := strconv.Atoi(phoneNumberStr)
 		if err != nil {
-			return c.String(http.StatusBadRequest, "Invalid phone number")
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid phone number. Only digits are allowed."})
+		}
+
+		// Format the first name and hash the password
+		firstName = strings.Replace(firstName, string(firstName[0]), strings.ToUpper(string(firstName[0])), 1)
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error hashing password."})
 		}
 
 		// Create the new account in the database
@@ -109,16 +106,16 @@ func createAccountHandler(db dbutil.Database, c echo.Context) error {
 		}
 		err = db.CreateAccount(newAccount)
 		if err != nil {
-			return c.String(http.StatusInternalServerError, "Error creating account")
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error creating account. Please try again."})
 		}
 
 		// Automatically log in the user by creating a session
 		sess, _ := session.Get("session", c)
-		sess.Values["userID"] = newAccount.Id // Use the new account's ID
+		sess.Values["userID"] = newAccount.Id
 		sess.Save(c.Request(), c.Response())
 
-		// Redirect to the homepage or user dashboard
-		return c.Redirect(http.StatusSeeOther, "/")
+		// Return success response
+		return c.JSON(http.StatusOK, map[string]string{"status": "success"})
 	}
 
 	return nil
@@ -129,31 +126,38 @@ func loginHandler(db dbutil.Database, c echo.Context) error {
 		email := c.FormValue("email")
 		password := c.FormValue("password")
 
+		// Check for empty fields
 		if email == "" || password == "" {
-			return c.String(http.StatusBadRequest, "Please enter email and password")
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Please enter both email and password."})
 		}
 
+		// Fetch account by email
 		account, err := db.GetAccountByEmail(email)
 		if err != nil {
+			// Check if the error is "no rows found," meaning the account doesn't exist
 			if err == sql.ErrNoRows {
-				return c.Render(http.StatusUnauthorized, "login", "invalid login details")
+				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid email or password."})
 			}
-			return c.String(http.StatusInternalServerError, "Error fetching account")
+			// Unexpected database error
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "An error occurred. Please try again."})
 		}
 
+		// Check password
 		err = bcrypt.CompareHashAndPassword([]byte(account.Encrypted_password), []byte(password))
 		if err != nil {
-			return c.Render(http.StatusUnauthorized, "login", map[string]interface{}{
-				"Error": "Invalid email or password", // Correct error message key
-			})
+			// Incorrect password
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid email or password."})
 		}
 
+		// Successful login: create session
 		sess, _ := session.Get("session", c)
 		sess.Values["userID"] = account.Id
 		sess.Save(c.Request(), c.Response())
 
-		return c.Redirect(http.StatusSeeOther, "/")
+		// Return success response
+		return c.JSON(http.StatusOK, map[string]string{"status": "success"})
 	}
+
 	return c.Render(http.StatusOK, "login", nil)
 }
 

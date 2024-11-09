@@ -16,7 +16,7 @@
 
   <!-- Navigation Bar -->
   <div class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <a href="/" class="navbar-brand">Home</a>
+    <a href="/" class="navbar-brand">My Account</a>
     <span class="navbar-text px-4"> | </span> 
 
     {{if .IsLoggedIn}}
@@ -36,6 +36,11 @@
       {{else}}
         <a href="/login" class="navbar-brand">Login</a>
       {{end}}
+    </div>
+
+    <!-- Link to Main Site -->
+    <div class="ml-3">
+        <a href="https://nhensby.com" class="navbar-brand text-warning">Back to nhensby.com</a>
     </div>
   </div>
 
