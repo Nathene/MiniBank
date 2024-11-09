@@ -69,26 +69,34 @@ func createAccountHandler(db dbutil.Database, c echo.Context) error {
 	}
 
 	if c.Request().Method == http.MethodPost {
+		// Collect form values
 		firstName := c.FormValue("first_name")
 		lastName := c.FormValue("last_name")
 		email := c.FormValue("email")
 		phoneNumberStr := c.FormValue("phone_number")
 		password := c.FormValue("password")
 
+		// Validate required fields
 		if firstName == "" || lastName == "" || email == "" || password == "" {
 			return c.String(http.StatusBadRequest, "Please fill in all required fields")
 		}
+
+		// Format the first name
 		firstName = strings.Replace(firstName, string(firstName[0]), strings.ToUpper(string(firstName[0])), 1)
 
+		// Hash the password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 		if err != nil {
 			return c.String(http.StatusInternalServerError, "Error hashing password")
 		}
+
+		// Convert phone number to integer
 		number, err := strconv.Atoi(phoneNumberStr)
 		if err != nil {
 			return c.String(http.StatusBadRequest, "Invalid phone number")
 		}
 
+		// Create the new account in the database
 		newAccount := &dbutil.Account{
 			First_name:         firstName,
 			Last_name:          lastName,
@@ -104,8 +112,15 @@ func createAccountHandler(db dbutil.Database, c echo.Context) error {
 			return c.String(http.StatusInternalServerError, "Error creating account")
 		}
 
+		// Automatically log in the user by creating a session
+		sess, _ := session.Get("session", c)
+		sess.Values["userID"] = newAccount.Id // Use the new account's ID
+		sess.Save(c.Request(), c.Response())
+
+		// Redirect to the homepage or user dashboard
 		return c.Redirect(http.StatusSeeOther, "/")
 	}
+
 	return nil
 }
 
@@ -154,57 +169,50 @@ func deleteAccountHandler(db dbutil.Database, c echo.Context) error {
 	sess, _ := session.Get("session", c)
 	userID, ok := sess.Values["userID"]
 	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "not_logged_in"})
 	}
 
 	if c.Request().Method == http.MethodGet {
 		accounts := db.GetAccounts()
-		accountIDStr := c.QueryParam("account_id")
-		if accountIDStr == "" {
-			return c.Render(http.StatusOK, "delete-account", map[string]interface{}{
-				"Accounts": accounts,
-			})
-		}
-
-		accountID, err := strconv.Atoi(accountIDStr)
-		if err != nil {
-			return c.String(http.StatusBadRequest, "Invalid account ID")
-		}
-
-		account, err := db.GetAccount(accountID)
-		if err != nil {
-			return c.String(http.StatusInternalServerError, "Error fetching account details")
-		}
-
-		if account.Id != userID.(int) {
-			return c.String(http.StatusForbidden, "You are not authorized to delete this account")
-		}
-
-		return c.Redirect(http.StatusSeeOther, "/delete-account")
-
+		return c.Render(http.StatusOK, "delete-account", map[string]interface{}{
+			"Accounts": accounts,
+		})
 	}
 
 	if c.Request().Method == http.MethodPost {
 		accountIDStr := c.FormValue("account_id")
 		accountID, err := strconv.Atoi(accountIDStr)
 		if err != nil {
-			return c.String(http.StatusBadRequest, "Invalid account ID")
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid_account_id"})
 		}
 
+		// Fetch the account details
 		account, err := db.GetAccount(accountID)
 		if err != nil {
-			return c.String(http.StatusInternalServerError, "Error fetching account details")
-		}
-		if account.Id != userID.(int) {
-			return c.String(http.StatusForbidden, "You are not authorized to delete this account")
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "fetch_error"})
 		}
 
+		// Check if the account is restricted and not owned by the user
+		if accountID <= 5 && account.Id != userID.(int) {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "unauthorized"})
+		}
+
+		// Delete the account
 		err = db.DeleteAccount(accountID)
 		if err != nil {
-			return c.String(http.StatusInternalServerError, "Error deleting account")
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "delete_error"})
 		}
 
-		return c.Redirect(http.StatusSeeOther, "/")
+		// If the user deleted their own account, clear the session and log them out
+		if accountID == userID.(int) {
+			sess.Options.MaxAge = -1 // Expire the session cookie
+			sess.Values["userID"] = nil
+			sess.Save(c.Request(), c.Response()) // Ensure session is saved as expired
+			return c.JSON(http.StatusOK, map[string]string{"status": "logged_out"})
+		}
+
+		// Otherwise, deletion was successful but no logout needed
+		return c.JSON(http.StatusOK, map[string]string{"status": "success"})
 	}
 
 	return nil
